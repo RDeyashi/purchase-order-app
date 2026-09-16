@@ -1,0 +1,152 @@
+{
+  "xsappname": "purchase-order-app",
+  "tenant-mode": "dedicated",
+  "description": "Security configuration for Purchase Order Application",
+  "scopes": [
+    {
+      "name": "$XSAPPNAME.PO_Read",
+      "description": "Read Purchase Orders and related data"
+    },
+    {
+      "name": "$XSAPPNAME.PO_Create",
+      "description": "Create new Purchase Orders"
+    },
+    {
+      "name": "$XSAPPNAME.PO_Edit",
+      "description": "Edit existing Draft Purchase Orders"
+    },
+    {
+      "name": "$XSAPPNAME.PO_Submit",
+      "description": "Submit Purchase Orders for review"
+    },
+    {
+      "name": "$XSAPPNAME.PO_Approve",
+      "description": "Approve or Reject Purchase Orders"
+    },
+    {
+      "name": "$XSAPPNAME.PO_Cancel",
+      "description": "Cancel Purchase Orders"
+    },
+    {
+      "name": "$XSAPPNAME.Dashboard_View",
+      "description": "View Dashboard and Analytics"
+    },
+    {
+      "name": "$XSAPPNAME.Admin_Manage",
+      "description": "Full administrative access to all features"
+    }
+  ],
+  "attributes": [
+    {
+      "name": "plant",
+      "description": "Manufacturing Plant the user belongs to",
+      "valueType": "string"
+    },
+    {
+      "name": "department",
+      "description": "Department the user belongs to",
+      "valueType": "string"
+    }
+  ],
+  "role-templates": [
+    {
+      "name": "PO_Viewer",
+      "description": "Can view Purchase Orders and Dashboard only",
+      "scope-references": [
+        "$XSAPPNAME.PO_Read",
+        "$XSAPPNAME.Dashboard_View"
+      ],
+      "attribute-references": [
+        "plant",
+        "department"
+      ]
+    },
+    {
+      "name": "PO_Creator",
+      "description": "Can create, edit and submit Purchase Orders",
+      "scope-references": [
+        "$XSAPPNAME.PO_Read",
+        "$XSAPPNAME.PO_Create",
+        "$XSAPPNAME.PO_Edit",
+        "$XSAPPNAME.PO_Submit",
+        "$XSAPPNAME.PO_Cancel",
+        "$XSAPPNAME.Dashboard_View"
+      ],
+      "attribute-references": [
+        "plant",
+        "department"
+      ]
+    },
+    {
+      "name": "PO_Approver",
+      "description": "Can review, approve and reject Purchase Orders",
+      "scope-references": [
+        "$XSAPPNAME.PO_Read",
+        "$XSAPPNAME.PO_Approve",
+        "$XSAPPNAME.PO_Cancel",
+        "$XSAPPNAME.Dashboard_View"
+      ],
+      "attribute-references": [
+        "plant",
+        "department"
+      ]
+    },
+    {
+      "name": "PO_Admin",
+      "description": "Full access to all Purchase Order features",
+      "scope-references": [
+        "$XSAPPNAME.PO_Read",
+        "$XSAPPNAME.PO_Create",
+        "$XSAPPNAME.PO_Edit",
+        "$XSAPPNAME.PO_Submit",
+        "$XSAPPNAME.PO_Approve",
+        "$XSAPPNAME.PO_Cancel",
+        "$XSAPPNAME.Dashboard_View",
+        "$XSAPPNAME.Admin_Manage"
+      ],
+      "attribute-references": [
+        "plant",
+        "department"
+      ]
+    }
+  ],
+  "role-collections": [
+    {
+      "name": "PurchaseOrder_Viewer",
+      "description": "Assigned to users who only need to view POs",
+      "role-template-references": [
+        "$XSAPPNAME.PO_Viewer"
+      ]
+    },
+    {
+      "name": "PurchaseOrder_Creator",
+      "description": "Assigned to users who create and submit POs",
+      "role-template-references": [
+        "$XSAPPNAME.PO_Creator"
+      ]
+    },
+    {
+      "name": "PurchaseOrder_Approver",
+      "description": "Assigned to users who review and approve POs",
+      "role-template-references": [
+        "$XSAPPNAME.PO_Approver"
+      ]
+    },
+    {
+      "name": "PurchaseOrder_Admin",
+      "description": "Assigned to administrators with full access",
+      "role-template-references": [
+        "$XSAPPNAME.PO_Admin"
+      ]
+    }
+  ],
+  "oauth2-configuration": {
+    "token-validity": 43200,
+    "refresh-token-validity": 604800,
+    "redirect-uris": [
+      "https://*.applicationstudio.cloud.sap/**",
+      "https://*.hana.ondemand.com/**",
+      "https://*.cfapps.us10.hana.ondemand.com/**"
+    ]
+  }
+}

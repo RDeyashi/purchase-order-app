@@ -1,0 +1,46 @@
+{
+  "name": "purchase-order-app",
+  "version": "1.0.0",
+  "dependencies": {
+    "@cap-js/hana": "^3",
+    "@sap/cds": "^10",
+    "@sap/xssec": "^4"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^3",
+    "@sap/cds-dk": "^10"
+  },
+  "scripts": {
+    "start": "cds-serve"
+  },
+  "private": true,
+  "cds": {
+    "requires": {
+      "auth": {
+        "kind": "mocked",
+        "restrict_all_services": true,
+        "users": {
+          "viewer.user": {
+            "password": "pass",
+            "roles": ["PO_Viewer"]
+          },
+          "creator.user": {
+            "password": "pass",
+            "roles": ["PO_Creator"]
+          },
+          "approver.user": {
+            "password": "pass",
+            "roles": ["PO_Approver"]
+          },
+          "admin.user": {
+            "password": "pass",
+            "roles": ["PO_Admin"]
+          }
+        }
+      },
+      "[production]": {
+        "auth": "xsuaa"
+      }
+    }
+  }
+}
