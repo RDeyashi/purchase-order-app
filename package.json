@@ -39,7 +39,10 @@
         }
       },
       "[production]": {
-        "auth": "xsuaa"
+        "auth": "xsuaa",
+        "db": {
+          "kind": "hana"
+        }
       }
     }
   }
