@@ -118,6 +118,30 @@ module.exports = cds.service.impl(async function () {
             return req.error(400, "Cannot submit PO without a Delivery Date");
     }
 
+    // AFTER READ — PurchaseOrders
+
+    this.after('READ', PurchaseOrders, (results) => {
+        const pos = Array.isArray(results) ? results : [results];
+        pos.forEach((po) => {
+            if (!po) return;
+            switch (po.status) {
+                case 'Approved':
+                    po.statusCriticality = 3; // Green
+                    break;
+                case 'Submitted':
+                case 'UnderReview':
+                    po.statusCriticality = 2; // Orange
+                    break;
+                case 'Rejected':
+                case 'Cancelled':
+                    po.statusCriticality = 1; // Red
+                    break;
+                default:
+                    po.statusCriticality = 0; // Grey — Draft
+            }
+        });
+    });
+
 
     // BEFORE CREATE — PurchaseOrders
 

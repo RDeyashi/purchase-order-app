@@ -43,7 +43,7 @@
   "sap.ui": {
     "technology": "UI5",
     "icons": {
-      "icon": "",
+      "icon": "sap-icon://purchase-order",
       "favIcon": "",
       "phone": "",
       "phone@2": "",
@@ -109,43 +109,58 @@
         }
       ],
       "targets": {
-        "PurchaseOrdersList": {
-          "type": "Component",
-          "id": "PurchaseOrdersList",
-          "name": "sap.fe.templates.ListReport",
-          "options": {
+    "PurchaseOrdersList": {
+        "type": "Component",
+        "id": "PurchaseOrdersList",
+        "name": "sap.fe.templates.ListReport",
+        "options": {
             "settings": {
-              "contextPath": "/PurchaseOrders",
-              "variantManagement": "Page",
-              "navigation": {
-                "PurchaseOrders": {
-                  "detail": {
-                    "route": "PurchaseOrdersObjectPage"
-                  }
+                "contextPath": "/PurchaseOrders",
+                "variantManagement": "Page",
+                "initialLoad": true,
+                "navigation": {
+                    "PurchaseOrders": {
+                        "detail": {
+                            "route": "PurchaseOrdersObjectPage"
+                        }
+                    }
+                },
+                "controlConfiguration": {
+                    "@com.sap.vocabularies.UI.v1.LineItem": {
+                        "tableSettings": {
+                            "type": "AnalyticalTable",
+                            "selectionMode": "Multi"
+                        }
+                    }
                 }
-              },
-              "controlConfiguration": {
-                "@com.sap.vocabularies.UI.v1.LineItem": {
-                  "tableSettings": {
-                    "type": "ResponsiveTable"
-                  }
-                }
-              }
             }
-          }
-        },
-        "PurchaseOrdersObjectPage": {
-          "type": "Component",
-          "id": "PurchaseOrdersObjectPage",
-          "name": "sap.fe.templates.ObjectPage",
-          "options": {
-            "settings": {
-              "editableHeaderContent": false,
-              "contextPath": "/PurchaseOrders"
-            }
-          }
         }
-      }
+    },
+    "PurchaseOrdersObjectPage": {
+        "type": "Component",
+        "id": "PurchaseOrdersObjectPage",
+        "name": "sap.fe.templates.ObjectPage",
+        "options": {
+            "settings": {
+                "editableHeaderContent": false,
+                "contextPath": "/PurchaseOrders",
+                "initialLoad": true,
+                "controlConfiguration": {
+                    "items/@com.sap.vocabularies.UI.v1.LineItem": {
+                        "tableSettings": {
+                            "type": "AnalyticalTable"
+                        }
+                    },
+                    "statusHistory/@com.sap.vocabularies.UI.v1.LineItem": {
+                        "tableSettings": {
+                            "type": "AnalyticalTable"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
     }
   },
   "sap.fiori": {
