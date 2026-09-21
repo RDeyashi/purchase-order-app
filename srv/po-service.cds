@@ -179,3 +179,30 @@ service POService @(path: '/api/po') {
         };
     };
 }
+
+// ─────────────────────────────────────────
+// FIELD LABELS — Filter Bar + Form Labels
+// ─────────────────────────────────────────
+annotate POService.PurchaseOrders with {
+    poNumber        @title: 'PO Number';
+    vendor          @title: 'Vendor';
+    orderDate       @title: 'Order Date';
+    deliveryDate    @title: 'Delivery Date';
+    status          @title: 'Status';
+    priority        @title: 'Priority';
+    totalAmount     @title: 'Total Amount';
+    currency        @title: 'Currency';
+    deliveryAddress @title: 'Delivery Address';
+    plant           @title: 'Plant';
+    department      @title: 'Department';
+    paymentTerms    @title: 'Payment Terms';
+    taxAmount       @title: 'Tax Amount';
+    discountAmount  @title: 'Discount Amount';
+    netAmount       @title: 'Net Amount';
+    remarks         @title: 'Remarks';
+    rejectionReason @title: 'Rejection Reason';
+    submittedAt     @title: 'Submitted At';
+    reviewedAt      @title: 'Reviewed At';
+    approvedAt      @title: 'Approved At';
+    approvedBy      @title: 'Approved By';
+}

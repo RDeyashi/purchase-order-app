@@ -4,67 +4,6 @@ using POService as service from '../../srv/po-service';
 // PURCHASE ORDERS — LIST REPORT + OBJECT PAGE
 // ─────────────────────────────────────────
 annotate service.PurchaseOrders with @(
-
-    // ─────────────────────────────────────
-    // HEADER INFO — Object Page Title
-    // ─────────────────────────────────────
-    UI.HeaderInfo                  : {
-        TypeName      : 'Purchase Order',
-        TypeNamePlural: 'Purchase Orders',
-        Title         : {
-            $Type: 'UI.DataField',
-            Value: poNumber
-        },
-        Description   : {
-            $Type: 'UI.DataField',
-            Value: vendor.name
-        }
-    },
-
-    // ─────────────────────────────────────
-    // HEADER FACETS — Object Page Header KPIs
-    // ─────────────────────────────────────
-    UI.HeaderFacets                : [
-        {
-            $Type : 'UI.ReferenceFacet',
-            Target: '@UI.FieldGroup#HeaderStatus'
-        },
-        {
-            $Type : 'UI.ReferenceFacet',
-            Target: '@UI.FieldGroup#HeaderAmount'
-        }
-    ],
-
-    // ─────────────────────────────────────
-    // FIELD GROUPS — Header KPI blocks
-    // ─────────────────────────────────────
-    UI.FieldGroup #HeaderStatus    : {Data: [
-        {
-            $Type      : 'UI.DataField',
-            Label      : 'Status',
-            Value      : status,
-            Criticality: statusCriticality
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Priority',
-            Value: priority
-        }
-    ]},
-
-    UI.FieldGroup #HeaderAmount    : {Data: [
-        {
-            $Type: 'UI.DataField',
-            Label: 'Net Amount',
-            Value: netAmount
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Currency',
-            Value: currency_code
-        }
-    ]},
-
     // ─────────────────────────────────────
     // LINE ITEM — List Report Columns
     // ─────────────────────────────────────
@@ -143,6 +82,66 @@ annotate service.PurchaseOrders with @(
         plant,
         department
     ],
+
+    // ─────────────────────────────────────
+    // HEADER INFO — Object Page Title
+    // ─────────────────────────────────────
+    UI.HeaderInfo                  : {
+        TypeName      : 'Purchase Order',
+        TypeNamePlural: 'Purchase Orders',
+        Title         : {
+            $Type: 'UI.DataField',
+            Value: poNumber
+        },
+        Description   : {
+            $Type: 'UI.DataField',
+            Value: vendor.name
+        }
+    },
+
+    // ─────────────────────────────────────
+    // HEADER FACETS — Object Page Header KPIs
+    // ─────────────────────────────────────
+    UI.HeaderFacets                : [
+        {
+            $Type : 'UI.ReferenceFacet',
+            Target: '@UI.FieldGroup#HeaderStatus'
+        },
+        {
+            $Type : 'UI.ReferenceFacet',
+            Target: '@UI.FieldGroup#HeaderAmount'
+        }
+    ],
+
+    // ─────────────────────────────────────
+    // FIELD GROUPS — Header KPI blocks
+    // ─────────────────────────────────────
+    UI.FieldGroup #HeaderStatus    : {Data: [
+        {
+            $Type      : 'UI.DataField',
+            Label      : 'Status',
+            Value      : status,
+            Criticality: statusCriticality
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Priority',
+            Value: priority
+        }
+    ]},
+
+    UI.FieldGroup #HeaderAmount    : {Data: [
+        {
+            $Type: 'UI.DataField',
+            Label: 'Net Amount',
+            Value: netAmount
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Currency',
+            Value: currency_code
+        }
+    ]},
 
     // ─────────────────────────────────────
     // FACETS — Object Page Tabs
