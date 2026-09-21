@@ -18,7 +18,8 @@
     "watch-po-list": "cds watch --open com.po.app.polist/index.html?sap-ui-xx-viewCache=false --livereload false",
     "undeploy": "cf undeploy purchase-order-app --delete-services --delete-service-keys --delete-service-brokers",
     "build": "rimraf resources mta_archives && mbt build --mtar archive",
-    "deploy": "cf deploy mta_archives/archive.mtar --retries 1"
+    "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
+    "watch-po-form": "cds watch --open com.po.app.poform/index.html?sap-ui-xx-viewCache=false --livereload false"
   },
   "private": true,
   "cds": {

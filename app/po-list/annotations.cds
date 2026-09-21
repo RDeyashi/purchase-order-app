@@ -520,3 +520,42 @@ annotate service.POStatusHistory with @(UI.LineItem: [
         Value: remarks
     }
 ]);
+
+// ─────────────────────────────────────────
+// EDIT CAPABILITIES
+// ─────────────────────────────────────────
+annotate service.PurchaseOrders with @(
+    Capabilities.UpdateRestrictions: {Updatable: true},
+    Capabilities.DeleteRestrictions: {Deletable: false}
+);
+
+// ─────────────────────────────────────────
+// ACTION BUTTONS — Object Page toolbar
+// ─────────────────────────────────────────
+annotate service.PurchaseOrders with @(UI.Identification: [
+    {
+        $Type : 'UI.DataFieldForAction',
+        Label : 'Submit for Review',
+        Action: 'POService.submitPO'
+    },
+    {
+        $Type : 'UI.DataFieldForAction',
+        Label : 'Start Review',
+        Action: 'POService.reviewPO'
+    },
+    {
+        $Type : 'UI.DataFieldForAction',
+        Label : 'Approve',
+        Action: 'POService.approvePO'
+    },
+    {
+        $Type : 'UI.DataFieldForAction',
+        Label : 'Reject',
+        Action: 'POService.rejectPO'
+    },
+    {
+        $Type : 'UI.DataFieldForAction',
+        Label : 'Cancel PO',
+        Action: 'POService.cancelPO'
+    }
+]);

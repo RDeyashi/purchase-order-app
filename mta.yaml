@@ -39,9 +39,23 @@ modules:
       - compoapppolist.zip
       name: compoapppolist
       target-path: resources/
+    - artifacts:
+      - compoapppoform.zip
+      name: compoapppoform
+      target-path: resources/
 - name: compoapppolist
   type: html5
   path: app/po-list
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: compoapppoform
+  type: html5
+  path: app/po-form
   build-parameters:
     build-result: dist
     builder: custom
