@@ -44,7 +44,7 @@
   "sap.ui": {
     "technology": "UI5",
     "icons": {
-      "icon": "",
+      "icon": "sap-icon://create",
       "favIcon": "",
       "phone": "",
       "phone@2": "",
@@ -63,7 +63,10 @@
       "minUI5Version": "1.152.0",
       "libs": {
         "sap.m": {},
-        "sap.ui.core": {}
+        "sap.ui.core": {},
+        "sap.ui.layout": {},
+        "sap.ui.unified": {},
+        "sap.ui.table": {}
       }
     },
     "contentDensities": {
@@ -83,8 +86,13 @@
         "settings": {
           "operationMode": "Server",
           "autoExpandSelect": true,
-          "earlyRequests": true
+          "earlyRequests": true,
+          "synchronizationMode": "None"
         }
+      },
+      "localForm": {
+        "type": "sap.ui.model.json.JSONModel",
+        "settings": {}
       }
     },
     "resources": {

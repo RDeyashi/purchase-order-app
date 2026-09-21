@@ -1,0 +1,23 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core">
+
+    <SelectDialog
+        id="vendorSelectDialog"
+        title="Select Vendor"
+        search=".onVendorSearch"
+        confirm=".onVendorSelected"
+        cancel=".onVendorDialogCancel"
+        items="{
+            path: '/Vendors',
+            sorter: { path: 'name' }
+        }">
+
+        <StandardListItem id="_IDGenStandardListItem"
+            title="{name}"
+            description="{contactPerson}"
+            info="{country}"
+            infoState="None"/>
+
+    </SelectDialog>
+</core:FragmentDefinition>

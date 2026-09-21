@@ -1,0 +1,24 @@
+<core:FragmentDefinition
+    xmlns="sap.m"
+    xmlns:core="sap.ui.core"
+>
+    <SelectDialog
+        id="productSelectDialog"
+        title="Select Product"
+        search=".onProductSearch"
+        confirm=".onProductSelected"
+        cancel=".onProductDialogCancel"
+        items="{
+            path: '/Products',
+            sorter: { path: 'name' }
+        }"
+    >
+        <StandardListItem
+            id="_IDGenStandardListItem1"
+            title="{name}"
+            description="{description}"
+            info="{category}"
+            infoState="None"
+        />
+    </SelectDialog>
+</core:FragmentDefinition>

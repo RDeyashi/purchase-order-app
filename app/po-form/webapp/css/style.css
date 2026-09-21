@@ -1,1 +1,4 @@
-/* Enter your custom styles here */
+.sapUiResponsiveMargin {
+    width: auto;
+    margin: 1rem;
+}

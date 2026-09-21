@@ -1,6 +1,678 @@
-<mvc:View controllerName="com.po.app.poform.controller.Main"
+<mvc:View
+    controllerName="com.po.app.poform.controller.Main"
     xmlns:mvc="sap.ui.core.mvc"
-    xmlns="sap.m">
-    <Page id="page" title="{i18n>title}">
+    xmlns="sap.m"
+    xmlns:l="sap.ui.layout"
+    xmlns:f="sap.ui.layout.form"
+    xmlns:core="sap.ui.core"
+    displayBlock="true"
+>
+    <Page
+        id="page"
+        title="Create Purchase Order"
+        showNavButton="true"
+        navButtonPress=".onNavBack"
+        backgroundDesign="List"
+    >
+        <!-- ─────────────────────────────────── -->
+        <!-- TOOLBAR — Action Buttons            -->
+        <!-- ─────────────────────────────────── -->
+        <customHeader>
+            <Bar id="_IDGenBar">
+                <contentLeft>
+                    <Button
+                        id="_IDGenButton1"
+                        icon="sap-icon://nav-back"
+                        press=".onNavBack"
+                    />
+                </contentLeft>
+                <contentMiddle>
+                    <Title
+                        id="_IDGenTitle"
+                        text="Create Purchase Order"
+                    />
+                </contentMiddle>
+                <contentRight>
+                    <Button
+                        id="btnSaveDraft"
+                        text="Save Draft"
+                        type="Default"
+                        icon="sap-icon://save"
+                        press=".onSaveDraft"
+                    />
+                    <Button
+                        id="btnSubmit"
+                        text="Submit"
+                        type="Emphasized"
+                        icon="sap-icon://paper-plane"
+                        press=".onSubmit"
+                    />
+                    <Button
+                        id="btnCancel"
+                        text="Cancel"
+                        type="Negative"
+                        icon="sap-icon://decline"
+                        press=".onCancel"
+                    />
+                </contentRight>
+            </Bar>
+        </customHeader>
+
+        <content>
+            <VBox
+                id="_IDGenVBox"
+                class="sapUiResponsiveMargin"
+            >
+                <!-- ─────────────────────────────────── -->
+                <!-- SECTION 1 — PO Header               -->
+                <!-- ─────────────────────────────────── -->
+                <Panel
+                    id="panelHeader"
+                    headerText="Purchase Order Details"
+                    expandable="false"
+                    expanded="true"
+                    class="sapUiMediumMarginBottom"
+                >
+                    <f:SimpleForm
+                        id="formPOHeader"
+                        editable="true"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="4"
+                        labelSpanS="12"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1"
+                    >
+                        <!-- Vendor -->
+                        <f:content>
+                            <Label
+                                id="_IDGenLabel"
+                                text="Vendor"
+                                required="true"
+                            />
+                            <HBox id="_IDGenHBox">
+                                <Input
+                                    id="inputVendorName"
+                                    value="{localForm>/vendorName}"
+                                    placeholder="Select Vendor"
+                                    editable="false"
+                                    width="90%"
+                                />
+                                <Button
+                                    id="_IDGenButton2"
+                                    icon="sap-icon://value-help"
+                                    press=".onVendorValueHelp"
+                                    class="sapUiTinyMarginBegin"
+                                />
+                            </HBox>
+
+                            <!-- Order Date -->
+                            <Label
+                                id="_IDGenLabel1"
+                                text="Order Date"
+                                required="true"
+                            />
+                            <DatePicker
+                                id="dpOrderDate"
+                                value="{localForm>/orderDate}"
+                                valueFormat="yyyy-MM-dd"
+                                displayFormat="MMM dd, yyyy"
+                                placeholder="Select Order Date"
+                            />
+
+                            <!-- Delivery Date -->
+                            <Label
+                                id="_IDGenLabel2"
+                                text="Delivery Date"
+                                required="true"
+                            />
+                            <DatePicker
+                                id="dpDeliveryDate"
+                                value="{localForm>/deliveryDate}"
+                                valueFormat="yyyy-MM-dd"
+                                displayFormat="MMM dd, yyyy"
+                                placeholder="Select Delivery Date"
+                            />
+
+                            <!-- Priority -->
+                            <Label
+                                id="_IDGenLabel3"
+                                text="Priority"
+                            />
+                            <Select
+                                id="selPriority"
+                                selectedKey="{localForm>/priority}"
+                            >
+                                <items>
+                                    <core:Item
+                                        id="_IDGenItem"
+                                        key="Low"
+                                        text="Low"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem1"
+                                        key="Medium"
+                                        text="Medium"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem2"
+                                        key="High"
+                                        text="High"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem3"
+                                        key="Critical"
+                                        text="Critical"
+                                    />
+                                </items>
+                            </Select>
+
+                            <!-- Currency -->
+                            <Label
+                                id="_IDGenLabel4"
+                                text="Currency"
+                                required="true"
+                            />
+                            <Select
+                                id="selCurrency"
+                                selectedKey="{localForm>/currency}"
+                            >
+                                <items>
+                                    <core:Item
+                                        id="_IDGenItem4"
+                                        key="INR"
+                                        text="INR - Indian Rupee"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem5"
+                                        key="USD"
+                                        text="USD - US Dollar"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem6"
+                                        key="EUR"
+                                        text="EUR - Euro"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem7"
+                                        key="GBP"
+                                        text="GBP - British Pound"
+                                    />
+                                </items>
+                            </Select>
+
+                            <!-- Plant -->
+                            <Label
+                                id="_IDGenLabel5"
+                                text="Plant"
+                            />
+                            <Select
+                                id="selPlant"
+                                selectedKey="{localForm>/plant}"
+                            >
+                                <items>
+                                    <core:Item
+                                        id="_IDGenItem8"
+                                        key="Plant-A"
+                                        text="Plant A - Jamshedpur"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem9"
+                                        key="Plant-B"
+                                        text="Plant B - Pune"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem10"
+                                        key="Plant-C"
+                                        text="Plant C - Kolkata"
+                                    />
+                                </items>
+                            </Select>
+
+                            <!-- Department -->
+                            <Label
+                                id="_IDGenLabel6"
+                                text="Department"
+                            />
+                            <Select
+                                id="selDepartment"
+                                selectedKey="{localForm>/department}"
+                            >
+                                <items>
+                                    <core:Item
+                                        id="_IDGenItem11"
+                                        key="Production"
+                                        text="Production"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem12"
+                                        key="Maintenance"
+                                        text="Maintenance"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem13"
+                                        key="Engineering"
+                                        text="Engineering"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem14"
+                                        key="Electrical"
+                                        text="Electrical"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem15"
+                                        key="Utilities"
+                                        text="Utilities"
+                                    />
+                                </items>
+                            </Select>
+
+                            <!-- Payment Terms -->
+                            <Label
+                                id="_IDGenLabel7"
+                                text="Payment Terms"
+                            />
+                            <Select
+                                id="selPaymentTerms"
+                                selectedKey="{localForm>/paymentTerms}"
+                            >
+                                <items>
+                                    <core:Item
+                                        id="_IDGenItem16"
+                                        key="Net30"
+                                        text="Net 30 Days"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem17"
+                                        key="Net45"
+                                        text="Net 45 Days"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem18"
+                                        key="Net60"
+                                        text="Net 60 Days"
+                                    />
+                                    <core:Item
+                                        id="_IDGenItem19"
+                                        key="Immediate"
+                                        text="Immediate"
+                                    />
+                                </items>
+                            </Select>
+
+                            <!-- Delivery Address -->
+                            <Label
+                                id="_IDGenLabel8"
+                                text="Delivery Address"
+                            />
+                            <TextArea
+                                id="taDeliveryAddress"
+                                value="{localForm>/deliveryAddress}"
+                                rows="2"
+                                width="100%"
+                                placeholder="Enter delivery address"
+                            />
+
+                            <!-- Remarks -->
+                            <Label
+                                id="_IDGenLabel9"
+                                text="Remarks"
+                            />
+                            <TextArea
+                                id="taRemarks"
+                                value="{localForm>/remarks}"
+                                rows="2"
+                                width="100%"
+                                placeholder="Enter remarks"
+                            />
+                        </f:content>
+                    </f:SimpleForm>
+                </Panel>
+
+                <!-- ─────────────────────────────────── -->
+                <!-- SECTION 2 — Line Items              -->
+                <!-- ─────────────────────────────────── -->
+                <Panel
+                    id="panelItems"
+                    expandable="false"
+                    expanded="true"
+                    class="sapUiMediumMarginBottom"
+                >
+                    <headerToolbar>
+                        <Toolbar id="_IDGenToolbar">
+                            <Title
+                                id="_IDGenTitle1"
+                                text="Line Items"
+                            />
+                            <ToolbarSpacer id="_IDGenToolbarSpacer" />
+                            <Button
+                                id="_IDGenButton3"
+                                text="Add Item"
+                                icon="sap-icon://add"
+                                type="Default"
+                                press=".onAddLineItem"
+                            />
+                        </Toolbar>
+                    </headerToolbar>
+
+                    <Table
+                        id="tblLineItems"
+                        items="{localForm>/items}"
+                        noDataText="No items added. Click 'Add Item' to add."
+                    >
+                        <columns>
+                            <Column
+                                id="_IDGenColumn"
+                                width="5%"
+                            >
+                                <Text
+                                    id="_IDGenText"
+                                    text="#"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn1"
+                                width="20%"
+                            >
+                                <Text
+                                    id="_IDGenText1"
+                                    text="Product"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn2"
+                                width="20%"
+                            >
+                                <Text
+                                    id="_IDGenText2"
+                                    text="Description"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn3"
+                                width="8%"
+                            >
+                                <Text
+                                    id="_IDGenText3"
+                                    text="Qty"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn4"
+                                width="7%"
+                            >
+                                <Text
+                                    id="_IDGenText4"
+                                    text="UOM"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn5"
+                                width="10%"
+                            >
+                                <Text
+                                    id="_IDGenText5"
+                                    text="Unit Price"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn6"
+                                width="8%"
+                            >
+                                <Text
+                                    id="_IDGenText6"
+                                    text="Disc %"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn7"
+                                width="8%"
+                            >
+                                <Text
+                                    id="_IDGenText7"
+                                    text="Tax %"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn8"
+                                width="10%"
+                            >
+                                <Text
+                                    id="_IDGenText8"
+                                    text="Total"
+                                />
+                            </Column>
+                            <Column
+                                id="_IDGenColumn9"
+                                width="4%"
+                            >
+                                <Text
+                                    id="_IDGenText9"
+                                    text=""
+                                />
+                            </Column>
+                        </columns>
+
+                        <items>
+                            <ColumnListItem id="_IDGenColumnListItem">
+                                <cells>
+                                    <!-- Item Number -->
+                                    <Text
+                                        id="_IDGenText10"
+                                        text="{localForm>itemNumber}"
+                                    />
+
+                                    <!-- Product with Value Help -->
+                                    <HBox id="_IDGenHBox1">
+                                        <Input
+                                            id="_IDGenInput"
+                                            value="{localForm>productName}"
+                                            placeholder="Select Product"
+                                            editable="false"
+                                            width="85%"
+                                        />
+                                        <Button
+                                            id="_IDGenButton4"
+                                            icon="sap-icon://value-help"
+                                            press=".onProductValueHelp"
+                                            class="sapUiTinyMarginBegin"
+                                        />
+                                    </HBox>
+
+                                    <!-- Description -->
+                                    <Input
+                                        id="_IDGenInput1"
+                                        value="{localForm>description}"
+                                        placeholder="Description"
+                                    />
+
+                                    <!-- Quantity -->
+                                    <StepInput
+                                        id="_IDGenStepInput"
+                                        value="{localForm>quantity}"
+                                        min="0"
+                                        step="1"
+                                        displayValuePrecision="3"
+                                        change=".onItemChange"
+                                    />
+
+                                    <!-- UOM -->
+                                    <Select
+                                        id="_IDGenSelect"
+                                        selectedKey="{localForm>uom}"
+                                    >
+                                        <items>
+                                            <core:Item
+                                                id="_IDGenItem20"
+                                                key="PCS"
+                                                text="PCS"
+                                            />
+                                            <core:Item
+                                                id="_IDGenItem21"
+                                                key="KG"
+                                                text="KG"
+                                            />
+                                            <core:Item
+                                                id="_IDGenItem22"
+                                                key="LTR"
+                                                text="LTR"
+                                            />
+                                            <core:Item
+                                                id="_IDGenItem23"
+                                                key="MTR"
+                                                text="MTR"
+                                            />
+                                            <core:Item
+                                                id="_IDGenItem24"
+                                                key="SET"
+                                                text="SET"
+                                            />
+                                        </items>
+                                    </Select>
+
+                                    <!-- Unit Price -->
+                                    <Input
+                                        id="_IDGenInput2"
+                                        value="{localForm>unitPrice}"
+                                        type="Number"
+                                        placeholder="0.00"
+                                        change=".onItemChange"
+                                    />
+
+                                    <!-- Discount -->
+                                    <Input
+                                        id="_IDGenInput3"
+                                        value="{localForm>discount}"
+                                        type="Number"
+                                        placeholder="0"
+                                        change=".onItemChange"
+                                    />
+
+                                    <!-- Tax Rate -->
+                                    <Input
+                                        id="_IDGenInput4"
+                                        value="{localForm>taxRate}"
+                                        type="Number"
+                                        placeholder="18"
+                                        change=".onItemChange"
+                                    />
+
+                                    <!-- Total Price — read only -->
+                                    <Text
+                                        id="_IDGenText11"
+                                        text="{localForm>totalPrice}"
+                                    />
+
+                                    <!-- Delete Button -->
+                                    <Button
+                                        id="_IDGenButton5"
+                                        icon="sap-icon://delete"
+                                        type="Negative"
+                                        press=".onDeleteLineItem"
+                                    />
+                                </cells>
+                            </ColumnListItem>
+                        </items>
+                    </Table>
+                </Panel>
+
+                <!-- ─────────────────────────────────── -->
+                <!-- SECTION 3 — Financial Summary       -->
+                <!-- ─────────────────────────────────── -->
+                <Panel
+                    id="panelSummary"
+                    headerText="Financial Summary"
+                    expandable="false"
+                    expanded="true"
+                    class="sapUiMediumMarginBottom"
+                >
+                    <f:SimpleForm
+                        id="_IDGenSimpleForm"
+                        editable="false"
+                        layout="ResponsiveGridLayout"
+                        labelSpanXL="4"
+                        labelSpanL="4"
+                        labelSpanM="4"
+                        labelSpanS="12"
+                        columnsXL="2"
+                        columnsL="2"
+                        columnsM="1"
+                    >
+                        <f:content>
+                            <Label
+                                id="_IDGenLabel10"
+                                text="Total Amount"
+                            />
+                            <Text
+                                id="txtTotalAmount"
+                                text="{localForm>/totalAmount}"
+                            />
+
+                            <Label
+                                id="_IDGenLabel11"
+                                text="Discount Amount"
+                            />
+                            <Text
+                                id="txtDiscountAmount"
+                                text="{localForm>/discountAmount}"
+                            />
+
+                            <Label
+                                id="_IDGenLabel12"
+                                text="Tax Amount"
+                            />
+                            <Text
+                                id="txtTaxAmount"
+                                text="{localForm>/taxAmount}"
+                            />
+
+                            <Label
+                                id="_IDGenLabel13"
+                                text="Net Amount"
+                            />
+                            <Text
+                                id="txtNetAmount"
+                                text="{localForm>/netAmount}"
+                            />
+                        </f:content>
+                    </f:SimpleForm>
+                </Panel>
+
+                <!-- ─────────────────────────────────── -->
+                <!-- SECTION 4 — Bottom Action Buttons   -->
+                <!-- ─────────────────────────────────── -->
+                <HBox
+                    id="_IDGenHBox2"
+                    justifyContent="End"
+                    class="sapUiMediumMarginBottom sapUiMediumMarginTop"
+                >
+                    <Button
+                        id="_IDGenButton6"
+                        text="Save Draft"
+                        type="Default"
+                        icon="sap-icon://save"
+                        press=".onSaveDraft"
+                        class="sapUiSmallMarginEnd"
+                    />
+                    <Button
+                        id="_IDGenButton7"
+                        text="Submit PO"
+                        type="Emphasized"
+                        icon="sap-icon://paper-plane"
+                        press=".onSubmit"
+                        class="sapUiSmallMarginEnd"
+                    />
+                    <Button
+                        id="_IDGenButton8"
+                        text="Cancel"
+                        type="Negative"
+                        icon="sap-icon://decline"
+                        press=".onCancel"
+                    />
+                </HBox>
+            </VBox>
+        </content>
     </Page>
 </mvc:View>
