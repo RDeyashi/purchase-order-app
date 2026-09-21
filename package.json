@@ -54,6 +54,41 @@
           }
         }
       },
+      "[hybrid]": {
+        "auth": {
+          "kind": "mocked",
+          "restrict_all_services": true,
+          "users": {
+            "viewer.user": {
+              "password": "pass",
+              "roles": [
+                "PO_Viewer"
+              ]
+            },
+            "creator.user": {
+              "password": "pass",
+              "roles": [
+                "PO_Creator"
+              ]
+            },
+            "approver.user": {
+              "password": "pass",
+              "roles": [
+                "PO_Approver"
+              ]
+            },
+            "admin.user": {
+              "password": "pass",
+              "roles": [
+                "PO_Admin"
+              ]
+            }
+          }
+        },
+        "db": {
+          "kind": "hana"
+        }
+      },
       "[production]": {
         "auth": "xsuaa",
         "db": {
