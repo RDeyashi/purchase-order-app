@@ -34,6 +34,14 @@
                 </contentMiddle>
                 <contentRight>
                     <Button
+                        id="btnGotoPOList"
+                        text="PO List"
+                        type="Ghost"
+                        icon="sap-icon://list"
+                        press=".onGotoPOList"
+                        class="sapUiSmallMarginEnd"
+                    />
+                    <Button
                         id="btnSaveDraft"
                         text="Save Draft"
                         type="Default"

@@ -4,10 +4,18 @@ using POService as service from '../../srv/po-service';
 // PURCHASE ORDERS — LIST REPORT + OBJECT PAGE
 // ─────────────────────────────────────────
 annotate service.PurchaseOrders with @(
+
     // ─────────────────────────────────────
     // LINE ITEM — List Report Columns
     // ─────────────────────────────────────
     UI.LineItem                    : [
+        {
+            $Type            : 'UI.DataFieldForIntentBasedNavigation',
+            Label            : 'Create Purchase Order',
+            SemanticObject   : 'PurchaseOrder',
+            Action           : 'create',
+            ![@UI.Importance]: #High
+        },
         {
             $Type            : 'UI.DataField',
             Label            : 'PO Number',
@@ -432,6 +440,33 @@ annotate service.PurchaseOrders with {
 // ─────────────────────────────────────────
 annotate service.PurchaseOrders with {
     statusCriticality @UI.Hidden
+}
+
+// ─────────────────────────────────────────
+// FIELD LABELS — Filter Bar Labels
+// ─────────────────────────────────────────
+annotate service.PurchaseOrders with {
+    poNumber        @title: 'PO Number';
+    vendor          @title: 'Vendor';
+    orderDate       @title: 'Order Date';
+    deliveryDate    @title: 'Delivery Date';
+    status          @title: 'Status';
+    priority        @title: 'Priority';
+    plant           @title: 'Plant';
+    department      @title: 'Department';
+    netAmount       @title: 'Net Amount';
+    currency        @title: 'Currency';
+    totalAmount     @title: 'Total Amount';
+    taxAmount       @title: 'Tax Amount';
+    discountAmount  @title: 'Discount Amount';
+    paymentTerms    @title: 'Payment Terms';
+    remarks         @title: 'Remarks';
+    rejectionReason @title: 'Rejection Reason';
+    submittedAt     @title: 'Submitted At';
+    reviewedAt      @title: 'Reviewed At';
+    approvedAt      @title: 'Approved At';
+    approvedBy      @title: 'Approved By';
+    deliveryAddress @title: 'Delivery Address';
 }
 
 // ─────────────────────────────────────────

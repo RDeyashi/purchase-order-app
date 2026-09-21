@@ -22,26 +22,26 @@ sap.ui.define([
         _initFormModel: function () {
             var oModel = new JSONModel({
                 // PO Header
-                vendor_ID       : "",
-                vendorName      : "",
-                orderDate       : new Date().toISOString().split("T")[0],
-                deliveryDate    : "",
-                priority        : "Medium",
-                currency        : "INR",
-                plant           : "Plant-A",
-                department      : "Production",
-                paymentTerms    : "Net30",
-                deliveryAddress : "",
-                remarks         : "",
+                vendor_ID: "",
+                vendorName: "",
+                orderDate: new Date().toISOString().split("T")[0],
+                deliveryDate: "",
+                priority: "Medium",
+                currency: "INR",
+                plant: "Plant-A",
+                department: "Production",
+                paymentTerms: "Net30",
+                deliveryAddress: "",
+                remarks: "",
 
                 // Line Items
-                items           : [],
+                items: [],
 
                 // Financial Summary
-                totalAmount     : "0.00",
-                discountAmount  : "0.00",
-                taxAmount       : "0.00",
-                netAmount       : "0.00"
+                totalAmount: "0.00",
+                discountAmount: "0.00",
+                taxAmount: "0.00",
+                netAmount: "0.00"
             });
             this.getView().setModel(oModel, "localForm");
         },
@@ -62,6 +62,13 @@ sap.ui.define([
         },
 
         // ─────────────────────────────────────────
+        // NAVIGATE TO PO LIST
+        // ─────────────────────────────────────────
+        onGotoPOList: function () {
+            window.location.href = "/com.po.app.polist/index.html";
+        },
+
+        // ─────────────────────────────────────────
         // VENDOR VALUE HELP
         // ─────────────────────────────────────────
         onVendorValueHelp: function () {
@@ -69,7 +76,7 @@ sap.ui.define([
 
             if (!this._oVendorDialog) {
                 Fragment.load({
-                    id  : oView.getId(),
+                    id: oView.getId(),
                     name: "com.po.app.poform.fragment.VendorValueHelp",
                     controller: this
                 }).then(function (oDialog) {
@@ -96,10 +103,10 @@ sap.ui.define([
         onVendorSelected: function (oEvent) {
             var oSelected = oEvent.getParameter("selectedItem");
             if (oSelected) {
-                var oCtx     = oSelected.getBindingContext();
-                var oModel   = this.getView().getModel("localForm");
-                oModel.setProperty("/vendor_ID",   oCtx.getProperty("ID"));
-                oModel.setProperty("/vendorName",  oCtx.getProperty("name"));
+                var oCtx = oSelected.getBindingContext();
+                var oModel = this.getView().getModel("localForm");
+                oModel.setProperty("/vendor_ID", oCtx.getProperty("ID"));
+                oModel.setProperty("/vendorName", oCtx.getProperty("name"));
             }
         },
 
@@ -120,7 +127,7 @@ sap.ui.define([
 
             if (!this._oProductDialog) {
                 Fragment.load({
-                    id  : oView.getId(),
+                    id: oView.getId(),
                     name: "com.po.app.poform.fragment.ProductValueHelp",
                     controller: this
                 }).then(function (oDialog) {
@@ -147,15 +154,15 @@ sap.ui.define([
         onProductSelected: function (oEvent) {
             var oSelected = oEvent.getParameter("selectedItem");
             if (oSelected && this._oCurrentItemContext) {
-                var oCtx      = oSelected.getBindingContext();
+                var oCtx = oSelected.getBindingContext();
                 var oFormModel = this.getView().getModel("localForm");
-                var sPath     = this._oCurrentItemContext.getPath();
+                var sPath = this._oCurrentItemContext.getPath();
 
-                oFormModel.setProperty(sPath + "/product_ID",   oCtx.getProperty("ID"));
-                oFormModel.setProperty(sPath + "/productName",  oCtx.getProperty("name"));
-                oFormModel.setProperty(sPath + "/description",  oCtx.getProperty("description"));
-                oFormModel.setProperty(sPath + "/uom",          oCtx.getProperty("uom"));
-                oFormModel.setProperty(sPath + "/unitPrice",    oCtx.getProperty("basePrice"));
+                oFormModel.setProperty(sPath + "/product_ID", oCtx.getProperty("ID"));
+                oFormModel.setProperty(sPath + "/productName", oCtx.getProperty("name"));
+                oFormModel.setProperty(sPath + "/description", oCtx.getProperty("description"));
+                oFormModel.setProperty(sPath + "/uom", oCtx.getProperty("uom"));
+                oFormModel.setProperty(sPath + "/unitPrice", oCtx.getProperty("basePrice"));
 
                 // recalculate after product selection
                 this._recalculateItem(sPath);
@@ -175,31 +182,31 @@ sap.ui.define([
         onAddLineItem: function () {
             var oModel = this.getView().getModel("localForm");
             var aItems = oModel.getProperty("/items");
-            var iNext  = (aItems.length + 1) * 10;
+            var iNext = (aItems.length + 1) * 10;
 
             aItems.push({
-                itemNumber  : iNext,
-                product_ID  : "",
-                productName : "",
-                description : "",
-                quantity    : 1,
-                uom         : "PCS",
-                unitPrice   : 0,
-                discount    : 0,
-                taxRate     : 18,
-                totalPrice  : 0
+                itemNumber: iNext,
+                product_ID: "",
+                productName: "",
+                description: "",
+                quantity: 1,
+                uom: "PCS",
+                unitPrice: 0,
+                discount: 0,
+                taxRate: 18,
+                totalPrice: 0
             });
 
             oModel.setProperty("/items", aItems);
         },
 
         onDeleteLineItem: function (oEvent) {
-            var oModel  = this.getView().getModel("localForm");
-            var aItems  = oModel.getProperty("/items");
-            var oCtx    = oEvent.getSource().getParent()
-                            .getBindingContext("localForm");
-            var sPath   = oCtx.getPath();
-            var iIndex  = parseInt(sPath.split("/").pop(), 10);
+            var oModel = this.getView().getModel("localForm");
+            var aItems = oModel.getProperty("/items");
+            var oCtx = oEvent.getSource().getParent()
+                .getBindingContext("localForm");
+            var sPath = oCtx.getPath();
+            var iIndex = parseInt(sPath.split("/").pop(), 10);
 
             aItems.splice(iIndex, 1);
 
@@ -214,8 +221,8 @@ sap.ui.define([
         },
 
         onItemChange: function (oEvent) {
-            var oCtx  = oEvent.getSource().getParent()
-                            .getBindingContext("localForm");
+            var oCtx = oEvent.getSource().getParent()
+                .getBindingContext("localForm");
             if (oCtx) {
                 this._recalculateItem(oCtx.getPath());
                 this._recalculateTotals();
@@ -226,60 +233,60 @@ sap.ui.define([
         // CALCULATIONS
         // ─────────────────────────────────────────
         _recalculateItem: function (sPath) {
-            var oModel      = this.getView().getModel("localForm");
-            var oItem       = oModel.getProperty(sPath);
-            var qty         = parseFloat(oItem.quantity)  || 0;
-            var unitPrice   = parseFloat(oItem.unitPrice) || 0;
-            var discountPct = parseFloat(oItem.discount)  || 0;
-            var taxRate     = parseFloat(oItem.taxRate)   || 18;
+            var oModel = this.getView().getModel("localForm");
+            var oItem = oModel.getProperty(sPath);
+            var qty = parseFloat(oItem.quantity) || 0;
+            var unitPrice = parseFloat(oItem.unitPrice) || 0;
+            var discountPct = parseFloat(oItem.discount) || 0;
+            var taxRate = parseFloat(oItem.taxRate) || 18;
 
-            var gross       = qty * unitPrice;
+            var gross = qty * unitPrice;
             var discountAmt = (gross * discountPct) / 100;
-            var taxableAmt  = gross - discountAmt;
-            var taxAmt      = (taxableAmt * taxRate) / 100;
-            var total       = taxableAmt + taxAmt;
+            var taxableAmt = gross - discountAmt;
+            var taxAmt = (taxableAmt * taxRate) / 100;
+            var total = taxableAmt + taxAmt;
 
             oModel.setProperty(sPath + "/totalPrice", parseFloat(total.toFixed(2)));
         },
 
         _recalculateTotals: function () {
-            var oModel  = this.getView().getModel("localForm");
-            var aItems  = oModel.getProperty("/items");
+            var oModel = this.getView().getModel("localForm");
+            var aItems = oModel.getProperty("/items");
 
-            var totalAmount   = 0;
+            var totalAmount = 0;
             var totalDiscount = 0;
-            var totalTax      = 0;
+            var totalTax = 0;
 
             aItems.forEach(function (item) {
-                var qty         = parseFloat(item.quantity)  || 0;
-                var unitPrice   = parseFloat(item.unitPrice) || 0;
-                var discountPct = parseFloat(item.discount)  || 0;
-                var taxRate     = parseFloat(item.taxRate)   || 18;
+                var qty = parseFloat(item.quantity) || 0;
+                var unitPrice = parseFloat(item.unitPrice) || 0;
+                var discountPct = parseFloat(item.discount) || 0;
+                var taxRate = parseFloat(item.taxRate) || 18;
 
-                var gross       = qty * unitPrice;
+                var gross = qty * unitPrice;
                 var discountAmt = (gross * discountPct) / 100;
-                var taxableAmt  = gross - discountAmt;
-                var taxAmt      = (taxableAmt * taxRate) / 100;
+                var taxableAmt = gross - discountAmt;
+                var taxAmt = (taxableAmt * taxRate) / 100;
 
-                totalAmount   += gross;
+                totalAmount += gross;
                 totalDiscount += discountAmt;
-                totalTax      += taxAmt;
+                totalTax += taxAmt;
             });
 
             var netAmount = totalAmount - totalDiscount + totalTax;
 
-            oModel.setProperty("/totalAmount",    totalAmount.toFixed(2));
+            oModel.setProperty("/totalAmount", totalAmount.toFixed(2));
             oModel.setProperty("/discountAmount", totalDiscount.toFixed(2));
-            oModel.setProperty("/taxAmount",      totalTax.toFixed(2));
-            oModel.setProperty("/netAmount",      netAmount.toFixed(2));
+            oModel.setProperty("/taxAmount", totalTax.toFixed(2));
+            oModel.setProperty("/netAmount", netAmount.toFixed(2));
         },
 
         // ─────────────────────────────────────────
         // VALIDATION
         // ─────────────────────────────────────────
         _validateForm: function () {
-            var oModel  = this.getView().getModel("localForm");
-            var oData   = oModel.getData();
+            var oModel = this.getView().getModel("localForm");
+            var oData = oModel.getData();
             var aErrors = [];
 
             if (!oData.vendor_ID) {
@@ -321,8 +328,8 @@ sap.ui.define([
         // ACTIONS — Save Draft / Submit / Cancel
         // ─────────────────────────────────────────
         onSaveDraft: function () {
-            var oModel  = this.getView().getModel("localForm");
-            var oData   = oModel.getData();
+            var oModel = this.getView().getModel("localForm");
+            var oData = oModel.getData();
 
             if (!oData.vendor_ID) {
                 MessageBox.error("Please select a Vendor before saving");
@@ -338,7 +345,7 @@ sap.ui.define([
             MessageBox.confirm(
                 "Are you sure you want to submit this Purchase Order?",
                 {
-                    title  : "Confirm Submit",
+                    title: "Confirm Submit",
                     onClose: function (sAction) {
                         if (sAction === MessageBox.Action.OK) {
                             this._createPO("Submit");
@@ -352,7 +359,7 @@ sap.ui.define([
             MessageBox.confirm(
                 "Are you sure you want to cancel? All unsaved changes will be lost.",
                 {
-                    title  : "Confirm Cancel",
+                    title: "Confirm Cancel",
                     onClose: function (sAction) {
                         if (sAction === MessageBox.Action.OK) {
                             this._initFormModel();
@@ -367,40 +374,40 @@ sap.ui.define([
         // CREATE PO — OData V4 Call
         // ─────────────────────────────────────────
         _createPO: function (sAction) {
-            var oModel   = this.getView().getModel("localForm");
-            var oData    = oModel.getData();
-            var oOData   = this.getView().getModel();
+            var oModel = this.getView().getModel("localForm");
+            var oData = oModel.getData();
+            var oOData = this.getView().getModel();
 
             // Build payload
             var oPayload = {
-                vendor_ID      : oData.vendor_ID,
-                orderDate      : oData.orderDate,
-                deliveryDate   : oData.deliveryDate,
-                priority       : oData.priority,
-                currency_code  : oData.currency,
-                plant          : oData.plant,
-                department     : oData.department,
-                paymentTerms   : oData.paymentTerms,
+                vendor_ID: oData.vendor_ID,
+                orderDate: oData.orderDate,
+                deliveryDate: oData.deliveryDate,
+                priority: oData.priority,
+                currency_code: oData.currency,
+                plant: oData.plant,
+                department: oData.department,
+                paymentTerms: oData.paymentTerms,
                 deliveryAddress: oData.deliveryAddress,
-                remarks        : oData.remarks,
-                items          : oData.items.map(function (item, idx) {
+                remarks: oData.remarks,
+                items: oData.items.map(function (item, idx) {
                     return {
-                        itemNumber : (idx + 1) * 10,
-                        product_ID : item.product_ID,
+                        itemNumber: (idx + 1) * 10,
+                        product_ID: item.product_ID,
                         description: item.description,
-                        quantity   : parseFloat(item.quantity),
-                        uom        : item.uom,
-                        unitPrice  : parseFloat(item.unitPrice),
+                        quantity: parseFloat(item.quantity),
+                        uom: item.uom,
+                        unitPrice: parseFloat(item.unitPrice),
                         currency_code: oData.currency,
-                        discount   : parseFloat(item.discount) || 0,
-                        taxRate    : parseFloat(item.taxRate)  || 18
+                        discount: parseFloat(item.discount) || 0,
+                        taxRate: parseFloat(item.taxRate) || 18
                     };
                 })
             };
 
             // OData V4 Create
             var oListBinding = oOData.bindList("/PurchaseOrders");
-            var oContext     = oListBinding.create(oPayload);
+            var oContext = oListBinding.create(oPayload);
 
             oContext.created().then(function () {
                 var sPoNumber = oContext.getProperty("poNumber");
@@ -414,12 +421,18 @@ sap.ui.define([
                     oAction.execute().then(function () {
                         MessageToast.show("PO " + sPoNumber + " submitted successfully!");
                         this._initFormModel();
+                        setTimeout(function () {
+                            window.location.href = "/com.po.app.polist/index.html";
+                        }, 1500);
                     }.bind(this)).catch(function (oError) {
                         MessageBox.error("Submit failed: " + oError.message);
                     });
                 } else {
                     MessageToast.show("PO " + sPoNumber + " saved as Draft!");
                     this._initFormModel();
+                    setTimeout(function () {
+                        window.location.href = "/com.po.app.polist/index.html";
+                    }, 1500);
                 }
             }.bind(this)).catch(function (oError) {
                 MessageBox.error("Failed to create PO: " + oError.message);
