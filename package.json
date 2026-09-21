@@ -4,7 +4,8 @@
   "dependencies": {
     "@cap-js/hana": "^3",
     "@sap/cds": "^10",
-    "@sap/xssec": "^4"
+    "@sap/xssec": "^4",
+    "express-rate-limit": "^7"
   },
   "devDependencies": {
     "@cap-js/sqlite": "^3",
@@ -15,11 +16,17 @@
   },
   "scripts": {
     "start": "cds-serve",
-    "watch-po-list": "cds watch --open com.po.app.polist/index.html?sap-ui-xx-viewCache=false --livereload false",
-    "undeploy": "cf undeploy purchase-order-app --delete-services --delete-service-keys --delete-service-brokers",
+    "watch": "cds watch",
+    "watch:hybrid": "cds watch --profile hybrid",
+    "watch:po-list": "cds watch --open com.po.app.polist/index.html?sap-ui-xx-viewCache=false --livereload false",
+    "watch:po-form": "cds watch --open com.po.app.poform/index.html?sap-ui-xx-viewCache=false --livereload false",
     "build": "rimraf resources mta_archives && mbt build --mtar archive",
     "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
-    "watch-po-form": "cds watch --open com.po.app.poform/index.html?sap-ui-xx-viewCache=false --livereload false"
+    "deploy:full": "npm run build && npm run deploy",
+    "undeploy": "cf undeploy purchase-order-app --delete-services --delete-service-keys --delete-service-brokers",
+    "lint": "eslint srv/ db/ --ext .js",
+    "db:deploy": "cds deploy --to sqlite",
+    "db:deploy:hana": "cds deploy --to hana --profile hybrid"
   },
   "private": true,
   "cds": {
@@ -86,21 +93,75 @@
           }
         },
         "db": {
-          "kind": "hana"
+          "kind": "hana",
+          "pool": {
+            "min": 2,
+            "max": 10,
+            "acquireTimeoutMillis": 10000,
+            "idleTimeoutMillis": 60000,
+            "evictionRunIntervalMillis": 100000,
+            "numTestsPerEvictionRun": 3,
+            "testOnBorrow": true,
+            "fifo": true
+          }
         }
       },
       "[production]": {
         "auth": "xsuaa",
         "db": {
-          "kind": "hana"
+          "kind": "hana",
+          "pool": {
+            "min": 5,
+            "max": 20,
+            "acquireTimeoutMillis": 15000,
+            "idleTimeoutMillis": 120000,
+            "evictionRunIntervalMillis": 60000,
+            "numTestsPerEvictionRun": 5,
+            "testOnBorrow": true,
+            "fifo": true
+          }
         }
       }
+    },
+    "query": {
+      "limit": {
+        "default": 1000,
+        "max": 5000
+      }
+    },
+    "log": {
+      "levels": {
+        "po-service": "info",
+        "db": "warn",
+        "cds": "warn"
+      },
+      "[production]": {
+        "levels": {
+          "po-service": "warn",
+          "db": "error",
+          "cds": "error"
+        }
+      }
+    },
+    "features": {
+      "serve_on_root": false,
+      "in_memory_db": false,
+      "skip_unused_dict": true
+    },
+    "odata": {
+      "version": "v4"
+    },
+    "server": {
+      "port": 4004,
+      "cors": true,
+      "shutdown_timeout": 10
     }
   },
   "workspaces": [
     "app/*"
   ],
   "sapux": [
-    "app/po-list"
+    "app/po-list",
+    "app/po-form"
   ]
 }

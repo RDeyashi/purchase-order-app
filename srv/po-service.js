@@ -1,35 +1,67 @@
 const cds = require("@sap/cds");
+const LOG = cds.log("po-service");
 
 module.exports = cds.service.impl(async function () {
-    const { PurchaseOrders, POItems, POStatusHistory, Vendors, Products } = this.entities;
+    const { PurchaseOrders, POItems, POStatusHistory, Vendors } = this.entities;
 
+    
+    // DB CONNECTION — Connect once, reuse
+    const db = await cds.connect.to("db");
 
+    
+    // CACHE — Reference data (Vendors/Products)
+    let _vendorCache = null;
+    let _vendorCacheTime = null;
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+    async function getVendorMap() {
+        const now = Date.now();
+        if (_vendorCache && _vendorCacheTime && (now - _vendorCacheTime < CACHE_TTL)) {
+            return _vendorCache;
+        }
+        const vendors = await db.run(
+            SELECT.from(Vendors)
+                .columns("ID", "name")
+                .where({ isActive: true })
+        );
+        _vendorCache = {};
+        vendors.forEach(v => { _vendorCache[v.ID] = v.name; });
+        _vendorCacheTime = now;
+        LOG.info("Vendor cache refreshed", { count: vendors.length });
+        return _vendorCache;
+    }
+
+    // Invalidate cache when vendors change
+    this.after(["CREATE", "UPDATE", "DELETE"], Vendors, () => {
+        _vendorCache = null;
+        _vendorCacheTime = null;
+        LOG.info("Vendor cache invalidated");
+    });
+
+    
     // HELPER — Generate PO Number
-    // Format: PO-2024-0001
-
-    async function generatePONumber(db) {
+    // Format: PO-2026-0001
+    async function generatePONumber() {
         const year = new Date().getFullYear();
         const prefix = `PO-${year}-`;
 
+        // Select only poNumber — minimal data fetch
         const last = await db.run(
             SELECT.one(PurchaseOrders)
+                .columns("poNumber")
                 .where({ poNumber: { like: `${prefix}%` } })
                 .orderBy({ poNumber: "desc" })
         );
 
-        let nextSeq = 1;
-        if (last && last.poNumber) {
-            const lastSeq = parseInt(last.poNumber.split("-")[2], 10);
-            nextSeq = lastSeq + 1;
-        }
+        const nextSeq = last?.poNumber
+            ? parseInt(last.poNumber.split("-")[2], 10) + 1
+            : 1;
 
         return `${prefix}${String(nextSeq).padStart(4, "0")}`;
     }
 
-
+    
     // HELPER — Calculate Single Item Total
-    // total = (qty * unitPrice) - discount% + tax%
-
     function calculateItemTotal(item) {
         const qty = parseFloat(item.quantity) || 0;
         const unitPrice = parseFloat(item.unitPrice) || 0;
@@ -40,21 +72,18 @@ module.exports = cds.service.impl(async function () {
         const discountAmt = (gross * discountPct) / 100;
         const taxableAmt = gross - discountAmt;
         const taxAmt = (taxableAmt * taxRate) / 100;
-        const total = taxableAmt + taxAmt;
 
-        return parseFloat(total.toFixed(2));
+        return parseFloat((taxableAmt + taxAmt).toFixed(2));
     }
 
-
+    
     // HELPER — Calculate PO Level Totals
-    // from all line items
-
     function calculatePOTotals(items = []) {
         let totalAmount = 0;
         let totalDiscount = 0;
         let totalTax = 0;
 
-        items.forEach((item) => {
+        for (const item of items) {
             const qty = parseFloat(item.quantity) || 0;
             const unitPrice = parseFloat(item.unitPrice) || 0;
             const discountPct = parseFloat(item.discount) || 0;
@@ -68,7 +97,7 @@ module.exports = cds.service.impl(async function () {
             totalAmount += gross;
             totalDiscount += discountAmt;
             totalTax += taxAmt;
-        });
+        }
 
         const netAmount = totalAmount - totalDiscount + totalTax;
 
@@ -76,14 +105,13 @@ module.exports = cds.service.impl(async function () {
             totalAmount: parseFloat(totalAmount.toFixed(2)),
             discountAmount: parseFloat(totalDiscount.toFixed(2)),
             taxAmount: parseFloat(totalTax.toFixed(2)),
-            netAmount: parseFloat(netAmount.toFixed(2)),
+            netAmount: parseFloat(netAmount.toFixed(2))
         };
     }
 
-
+    
     // HELPER — Log Status History
-
-    async function logStatusHistory(db, poId, fromStatus, toStatus, remarks, req) {
+    async function logStatusHistory(poId, fromStatus, toStatus, remarks, req) {
         await db.run(
             INSERT.into(POStatusHistory).entries({
                 po_ID: poId,
@@ -91,446 +119,358 @@ module.exports = cds.service.impl(async function () {
                 toStatus: toStatus,
                 changedBy: req.user?.id || "system",
                 changedAt: new Date().toISOString(),
-                remarks: remarks || `Status changed from ${fromStatus} to ${toStatus}`,
+                remarks: remarks || `Status changed from ${fromStatus} to ${toStatus}`
             })
         );
     }
 
-
-    // HELPER — Validate PO for Submission
-
-    async function validatePOForSubmit(db, poId, req) {
-        const items = await db.run(
-            SELECT.from(POItems).where({ po_ID: poId })
+    
+    // HELPER — Fetch PO with minimal columns
+    async function fetchPO(poId, columns = ["ID", "status", "vendor_ID", "deliveryDate"]) {
+        return db.run(
+            SELECT.one(PurchaseOrders)
+                .columns(...columns)
+                .where({ ID: poId })
         );
-
-        if (!items || items.length === 0)
-            return req.error(400, "Cannot submit PO without line items");
-
-        const po = await db.run(
-            SELECT.one(PurchaseOrders).where({ ID: poId })
-        );
-
-        if (!po.vendor_ID)
-            return req.error(400, "Cannot submit PO without a Vendor");
-
-        if (!po.deliveryDate)
-            return req.error(400, "Cannot submit PO without a Delivery Date");
     }
 
-    // AFTER READ — PurchaseOrders
+    
+    // HELPER — Validate PO transition
+    function validateTransition(po, poId, expectedStatus, req) {
+        if (!po)
+            return req.error(404, `Purchase Order ${poId} not found`);
+        if (po.status !== expectedStatus)
+            return req.error(400,
+                `Expected status '${expectedStatus}' but current is '${po.status}'`);
+    }
 
-    this.after('READ', PurchaseOrders, (results) => {
+    
+    // AFTER READ — Compute statusCriticality
+    this.after("READ", PurchaseOrders, (results) => {
         const pos = Array.isArray(results) ? results : [results];
-        pos.forEach((po) => {
-            if (!po) return;
-            switch (po.status) {
-                case 'Approved':
-                    po.statusCriticality = 3; // Green
-                    break;
-                case 'Submitted':
-                case 'UnderReview':
-                    po.statusCriticality = 2; // Orange
-                    break;
-                case 'Rejected':
-                case 'Cancelled':
-                    po.statusCriticality = 1; // Red
-                    break;
-                default:
-                    po.statusCriticality = 0; // Grey — Draft
-            }
-        });
-    });
-
-
-    // BEFORE CREATE — PurchaseOrders
-
-    this.before("CREATE", PurchaseOrders, async (req) => {
-        const db = await cds.connect.to("db");
-
-        // auto generate PO number
-        req.data.poNumber = await generatePONumber(db);
-
-        // defaults
-        req.data.status = "Draft";
-        req.data.priority = req.data.priority || "Medium";
-        req.data.orderDate =
-            req.data.orderDate || new Date().toISOString().split("T")[0];
-
-        // calculate items if passed with PO
-        if (req.data.items && req.data.items.length > 0) {
-            req.data.items = req.data.items.map((item, index) => ({
-                ...item,
-                itemNumber: (index + 1) * 10,
-                totalPrice: calculateItemTotal(item),
-                uom: item.uom || "PCS",
-            }));
-
-            const totals = calculatePOTotals(req.data.items);
-            Object.assign(req.data, totals);
+        const statusMap = {
+            Approved: 3,
+            Submitted: 2,
+            UnderReview: 2,
+            Rejected: 1,
+            Cancelled: 1
+        };
+        for (const po of pos) {
+            if (po) po.statusCriticality = statusMap[po.status] ?? 0;
         }
     });
 
+    
+    // BEFORE CREATE — PurchaseOrders
+    this.before("CREATE", PurchaseOrders, async (req) => {
+        // auto generate PO number
+        req.data.poNumber = await generatePONumber();
+        req.data.status = "Draft";
+        req.data.priority = req.data.priority || "Medium";
+        req.data.orderDate = req.data.orderDate
+            || new Date().toISOString().split("T")[0];
 
-    // AFTER CREATE — PurchaseOrders
-    // Log Draft status in history
+        if (req.data.items?.length > 0) {
+            req.data.items = req.data.items.map((item, idx) => ({
+                ...item,
+                itemNumber: (idx + 1) * 10,
+                totalPrice: calculateItemTotal(item),
+                uom: item.uom || "PCS"
+            }));
+            Object.assign(req.data, calculatePOTotals(req.data.items));
+        }
 
-    this.after("CREATE", PurchaseOrders, async (result, req) => {
-        const db = await cds.connect.to("db");
-
-        await logStatusHistory(
-            db,
-            result.ID,
-            null,
-            "Draft",
-            "Purchase Order created",
-            req
-        );
+        LOG.info("Creating PO", { poNumber: req.data.poNumber, user: req.user?.id });
     });
 
+    
+    // AFTER CREATE — Log Draft history
+    this.after("CREATE", PurchaseOrders, async (result, req) => {
+        await logStatusHistory(result.ID, null, "Draft", "Purchase Order created", req);
+        LOG.info("PO created", { ID: result.ID, poNumber: result.poNumber });
+    });
 
+    
     // BEFORE UPDATE — PurchaseOrders
-    // Block editing terminal status POs
-    // Recalculate totals if items changed
-
     this.before("UPDATE", PurchaseOrders, async (req) => {
-        const db = await cds.connect.to("db");
-
-        const existing = await db.run(
-            SELECT.one(PurchaseOrders).where({ ID: req.data.ID })
-        );
+        // fetch only needed columns — minimal data
+        const existing = await fetchPO(req.data.ID, ["ID", "status"]);
 
         if (!existing)
             return req.error(404, "Purchase Order not found");
 
-        const blockedStatuses = ["Approved", "Cancelled"];
-        if (blockedStatuses.includes(existing.status))
-            return req.error(
-                400,
-                `Cannot edit a Purchase Order in '${existing.status}' status`
-            );
+        if (["Approved", "Cancelled"].includes(existing.status))
+            return req.error(400,
+                `Cannot edit PO in '${existing.status}' status`);
 
-        if (req.data.items && req.data.items.length > 0) {
-            req.data.items = req.data.items.map((item, index) => ({
+        if (req.data.items?.length > 0) {
+            req.data.items = req.data.items.map((item, idx) => ({
                 ...item,
-                itemNumber: item.itemNumber || (index + 1) * 10,
-                totalPrice: calculateItemTotal(item),
+                itemNumber: item.itemNumber || (idx + 1) * 10,
+                totalPrice: calculateItemTotal(item)
             }));
-
-            const totals = calculatePOTotals(req.data.items);
-            Object.assign(req.data, totals);
+            Object.assign(req.data, calculatePOTotals(req.data.items));
         }
     });
 
-
+    
     // BEFORE CREATE — POItems
-    // Calculate item total when item added standalone
-
-    this.before("CREATE", POItems, async (req) => {
+    this.before("CREATE", POItems, (req) => {
         req.data.totalPrice = calculateItemTotal(req.data);
         req.data.uom = req.data.uom || "PCS";
     });
 
-
-    // AFTER CREATE — POItems
-    // Recalculate PO totals after item added
-
-    this.after("CREATE", POItems, async (result, req) => {
-        const db = await cds.connect.to("db");
-
+    
+    // AFTER CREATE/UPDATE/DELETE — POItems
+    // Recalculate PO totals in one transaction
+    async function recalcPOTotals(poId) {
+        if (!poId) return;
         const allItems = await db.run(
-            SELECT.from(POItems).where({ po_ID: result.po_ID })
+            SELECT.from(POItems)
+                .columns("quantity", "unitPrice", "discount", "taxRate")
+                .where({ po_ID: poId })
         );
-
         const totals = calculatePOTotals(allItems);
-
         await db.run(
-            UPDATE(PurchaseOrders)
-                .set(totals)
-                .where({ ID: result.po_ID })
+            UPDATE(PurchaseOrders).set(totals).where({ ID: poId })
         );
+    }
+
+    this.after("CREATE", POItems, async (result) => {
+        await recalcPOTotals(result.po_ID);
     });
 
-
-    // AFTER UPDATE — POItems
-    // Recalculate PO totals after item updated
-
-    this.after("UPDATE", POItems, async (result, req) => {
-        const db = await cds.connect.to("db");
-
-        const allItems = await db.run(
-            SELECT.from(POItems).where({ po_ID: result.po_ID })
-        );
-
-        const totals = calculatePOTotals(allItems);
-
-        await db.run(
-            UPDATE(PurchaseOrders)
-                .set(totals)
-                .where({ ID: result.po_ID })
-        );
+    this.after("UPDATE", POItems, async (result) => {
+        await recalcPOTotals(result.po_ID);
     });
-
-
-    // AFTER DELETE — POItems
-    // Recalculate PO totals after item deleted
 
     this.after("DELETE", POItems, async (result, req) => {
-        const db = await cds.connect.to("db");
         const poId = req.params?.[0]?.po_ID || result?.po_ID;
-
-        if (!poId) return;
-
-        const allItems = await db.run(
-            SELECT.from(POItems).where({ po_ID: poId })
-        );
-
-        const totals = calculatePOTotals(allItems);
-
-        await db.run(
-            UPDATE(PurchaseOrders)
-                .set(totals)
-                .where({ ID: poId })
-        );
+        await recalcPOTotals(poId);
     });
 
-
-    // ACTION — submitPO
-    // Draft → Submitted
-
+    
+    // ACTION — submitPO  Draft → Submitted
     this.on("submitPO", async (req) => {
-        const db = await cds.connect.to("db");
         const { poId, remarks } = req.data;
+        if (!poId) return req.error(400, "poId is required");
 
-        const po = await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
-        if (!po) return req.error(404, "Purchase Order not found");
-        if (po.status !== "Draft")
-            return req.error(
-                400,
-                `Only Draft POs can be submitted. Current: ${po.status}`
-            );
+        // fetch only needed columns
+        const po = await fetchPO(poId, ["ID", "status", "vendor_ID", "deliveryDate"]);
+        const err = validateTransition(po, poId, "Draft", req);
+        if (err) return err;
 
-        await validatePOForSubmit(db, poId, req);
+        // validate before write
+        if (!po.vendor_ID) return req.error(400, "PO has no Vendor assigned");
+        if (!po.deliveryDate) return req.error(400, "PO has no Delivery Date");
 
+        const itemCount = await db.run(
+            SELECT.one(POItems)
+                .columns("count(*) as cnt")
+                .where({ po_ID: poId })
+        );
+        if (!itemCount?.cnt || itemCount.cnt === 0)
+            return req.error(400, "PO has no line items");
+
+        // single write + history in sequence
         await db.run(
             UPDATE(PurchaseOrders)
                 .set({ status: "Submitted", submittedAt: new Date().toISOString() })
                 .where({ ID: poId })
         );
+        await logStatusHistory(poId, "Draft", "Submitted", remarks, req);
 
-        await logStatusHistory(db, poId, "Draft", "Submitted", remarks, req);
-
-        return await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
+        LOG.info("PO submitted", { poId, user: req.user?.id });
+        return fetchPO(poId, ["ID", "poNumber", "status", "submittedAt"]);
     });
 
-
-    // ACTION — reviewPO
-    // Submitted → UnderReview
-
+    
+    // ACTION — reviewPO  Submitted → UnderReview
     this.on("reviewPO", async (req) => {
-        const db = await cds.connect.to("db");
         const { poId, remarks } = req.data;
+        if (!poId) return req.error(400, "poId is required");
 
-        const po = await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
-        if (!po) return req.error(404, "Purchase Order not found");
-        if (po.status !== "Submitted")
-            return req.error(
-                400,
-                `Only Submitted POs can be reviewed. Current: ${po.status}`
-            );
+        const po = await fetchPO(poId, ["ID", "status"]);
+        const err = validateTransition(po, poId, "Submitted", req);
+        if (err) return err;
 
         await db.run(
             UPDATE(PurchaseOrders)
                 .set({ status: "UnderReview", reviewedAt: new Date().toISOString() })
                 .where({ ID: poId })
         );
+        await logStatusHistory(poId, "Submitted", "UnderReview", remarks, req);
 
-        await logStatusHistory(db, poId, "Submitted", "UnderReview", remarks, req);
-
-        return await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
+        LOG.info("PO under review", { poId, user: req.user?.id });
+        return fetchPO(poId, ["ID", "poNumber", "status", "reviewedAt"]);
     });
 
-
-    // ACTION — approvePO
-    // UnderReview → Approved
-
+    
+    // ACTION — approvePO  UnderReview → Approved
     this.on("approvePO", async (req) => {
-        const db = await cds.connect.to("db");
         const { poId, remarks } = req.data;
+        if (!poId) return req.error(400, "poId is required");
 
-        const po = await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
-        if (!po) return req.error(404, "Purchase Order not found");
-        if (po.status !== "UnderReview")
-            return req.error(
-                400,
-                `Only POs Under Review can be approved. Current: ${po.status}`
-            );
+        const po = await fetchPO(poId, ["ID", "status"]);
+        const err = validateTransition(po, poId, "UnderReview", req);
+        if (err) return err;
 
         await db.run(
             UPDATE(PurchaseOrders)
                 .set({
                     status: "Approved",
                     approvedAt: new Date().toISOString(),
-                    approvedBy: req.user?.id || "approver",
+                    approvedBy: req.user?.id || "approver"
                 })
                 .where({ ID: poId })
         );
+        await logStatusHistory(poId, "UnderReview", "Approved", remarks, req);
 
-        await logStatusHistory(db, poId, "UnderReview", "Approved", remarks, req);
-
-        return await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
+        LOG.info("PO approved", { poId, user: req.user?.id });
+        return fetchPO(poId, ["ID", "poNumber", "status", "approvedAt", "approvedBy"]);
     });
 
-
-    // ACTION — rejectPO
-    // UnderReview → Rejected
-
+    
+    // ACTION — rejectPO  UnderReview → Rejected
     this.on("rejectPO", async (req) => {
-        const db = await cds.connect.to("db");
         const { poId, rejectionReason, remarks } = req.data;
+        if (!poId) return req.error(400, "poId is required");
+        if (!rejectionReason) return req.error(400, "Rejection reason is mandatory");
 
-        const po = await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
-        if (!po) return req.error(404, "Purchase Order not found");
-        if (po.status !== "UnderReview")
-            return req.error(
-                400,
-                `Only POs Under Review can be rejected. Current: ${po.status}`
-            );
-
-        if (!rejectionReason)
-            return req.error(400, "Rejection reason is mandatory");
+        const po = await fetchPO(poId, ["ID", "status"]);
+        const err = validateTransition(po, poId, "UnderReview", req);
+        if (err) return err;
 
         await db.run(
             UPDATE(PurchaseOrders)
-                .set({ status: "Rejected", rejectionReason: rejectionReason })
+                .set({ status: "Rejected", rejectionReason })
                 .where({ ID: poId })
         );
+        await logStatusHistory(poId, "UnderReview", "Rejected", rejectionReason, req);
 
-        await logStatusHistory(db, poId, "UnderReview", "Rejected", rejectionReason, req);
-
-        return await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
+        LOG.info("PO rejected", { poId, user: req.user?.id, reason: rejectionReason });
+        return fetchPO(poId, ["ID", "poNumber", "status", "rejectionReason"]);
     });
 
-
-    // ACTION — cancelPO
-    // Any non-terminal → Cancelled
-
+    
+    // ACTION — cancelPO  Any → Cancelled
     this.on("cancelPO", async (req) => {
-        const db = await cds.connect.to("db");
         const { poId, remarks } = req.data;
+        if (!poId) return req.error(400, "poId is required");
 
-        const po = await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
-        if (!po) return req.error(404, "Purchase Order not found");
+        const po = await fetchPO(poId, ["ID", "status"]);
+        if (!po) return req.error(404, `PO ${poId} not found`);
 
-        const terminalStatuses = ["Approved", "Cancelled"];
-        if (terminalStatuses.includes(po.status))
-            return req.error(
-                400,
-                `Cannot cancel a PO in '${po.status}' status`
-            );
+        if (["Approved", "Cancelled"].includes(po.status))
+            return req.error(400, `Cannot cancel PO in '${po.status}' status`);
 
         await db.run(
             UPDATE(PurchaseOrders)
                 .set({ status: "Cancelled" })
                 .where({ ID: poId })
         );
+        await logStatusHistory(poId, po.status, "Cancelled", remarks, req);
 
-        await logStatusHistory(db, poId, po.status, "Cancelled", remarks, req);
-
-        return await db.run(SELECT.one(PurchaseOrders).where({ ID: poId }));
+        LOG.info("PO cancelled", { poId, user: req.user?.id });
+        return fetchPO(poId, ["ID", "poNumber", "status"]);
     });
 
-
+    
     // FUNCTION — getDashboardStats
-
+    // Optimized: DB-level aggregation
     this.on("getDashboardStats", async (req) => {
-        const db = await cds.connect.to("db");
+        LOG.info("getDashboardStats called", { user: req.user?.id });
 
-        // all POs
-        const allPOs = await db.run(SELECT.from(PurchaseOrders));
+        // ── Parallel queries — run simultaneously ──
+        const [allPOs, vendorMap] = await Promise.all([
+            db.run(
+                SELECT.from(PurchaseOrders)
+                    .columns("status", "netAmount", "vendor_ID", "orderDate")
+            ),
+            getVendorMap()
+        ]);
 
-        // counts by status
-        const countByStatus = (status) =>
-            allPOs.filter((po) => po.status === status).length;
+        // ── Compute stats in single pass ──
+        let totalAmount = 0;
+        let approvedAmount = 0;
+        let pendingAmount = 0;
+        let draftCount = 0;
+        let submittedCount = 0;
+        let underReviewCount = 0;
+        let approvedCount = 0;
+        let rejectedCount = 0;
+        let cancelledCount = 0;
 
-        // amount by status
-        const amountByStatus = (status) =>
-            allPOs
-                .filter((po) => po.status === status)
-                .reduce((sum, po) => sum + (parseFloat(po.netAmount) || 0), 0);
+        const vendorStats = {};
+        const monthlyMap = {};
 
-        // top vendors — group by vendor
-        const vendorMap = {};
-        allPOs.forEach((po) => {
-            if (!po.vendor_ID) return;
-            if (!vendorMap[po.vendor_ID]) {
-                vendorMap[po.vendor_ID] = {
-                    vendorId: po.vendor_ID,
-                    vendorName: "",
-                    poCount: 0,
-                    totalAmount: 0,
-                };
+        for (const po of allPOs) {
+            const amt = parseFloat(po.netAmount) || 0;
+            totalAmount += amt;
+
+            // status counts + amounts in one pass
+            switch (po.status) {
+                case "Draft": draftCount++; break;
+                case "Submitted": submittedCount++; pendingAmount += amt; break;
+                case "UnderReview": underReviewCount++; pendingAmount += amt; break;
+                case "Approved": approvedCount++; approvedAmount += amt; break;
+                case "Rejected": rejectedCount++; break;
+                case "Cancelled": cancelledCount++; break;
             }
-            vendorMap[po.vendor_ID].poCount++;
-            vendorMap[po.vendor_ID].totalAmount += parseFloat(po.netAmount) || 0;
-        });
 
-        // get vendor names
-        const vendorIds = Object.keys(vendorMap);
-        if (vendorIds.length > 0) {
-            const vendors = await db.run(
-                SELECT.from(Vendors).where({ ID: { in: vendorIds } })
-            );
-            vendors.forEach((v) => {
-                if (vendorMap[v.ID]) vendorMap[v.ID].vendorName = v.name;
-            });
+            // vendor aggregation
+            if (po.vendor_ID) {
+                if (!vendorStats[po.vendor_ID]) {
+                    vendorStats[po.vendor_ID] = { poCount: 0, totalAmount: 0 };
+                }
+                vendorStats[po.vendor_ID].poCount++;
+                vendorStats[po.vendor_ID].totalAmount += amt;
+            }
+
+            // monthly trend
+            if (po.orderDate) {
+                const month = po.orderDate.substring(0, 7);
+                if (!monthlyMap[month]) {
+                    monthlyMap[month] = { month, poCount: 0, totalAmount: 0 };
+                }
+                monthlyMap[month].poCount++;
+                monthlyMap[month].totalAmount += amt;
+            }
         }
 
-        const topVendors = Object.values(vendorMap)
+        // ── Top 5 vendors with cached names ──
+        const topVendors = Object.entries(vendorStats)
+            .map(([id, stats]) => ({
+                vendorId: id,
+                vendorName: vendorMap[id] || "Unknown",
+                poCount: stats.poCount,
+                totalAmount: parseFloat(stats.totalAmount.toFixed(2))
+            }))
             .sort((a, b) => b.totalAmount - a.totalAmount)
-            .slice(0, 5)
-            .map((v) => ({
-                ...v,
-                totalAmount: parseFloat(v.totalAmount.toFixed(2)),
-            }));
+            .slice(0, 5);
 
-        // monthly trend — last 6 months
-        const monthlyMap = {};
-        allPOs.forEach((po) => {
-            if (!po.orderDate) return;
-            const month = po.orderDate.substring(0, 7); // YYYY-MM
-            if (!monthlyMap[month]) {
-                monthlyMap[month] = { month, poCount: 0, totalAmount: 0 };
-            }
-            monthlyMap[month].poCount++;
-            monthlyMap[month].totalAmount += parseFloat(po.netAmount) || 0;
-        });
-
+        // ── Last 6 months trend ──
         const monthlyTrend = Object.values(monthlyMap)
             .sort((a, b) => a.month.localeCompare(b.month))
             .slice(-6)
-            .map((m) => ({
+            .map(m => ({
                 ...m,
-                totalAmount: parseFloat(m.totalAmount.toFixed(2)),
+                totalAmount: parseFloat(m.totalAmount.toFixed(2))
             }));
 
         return {
             totalPOs: allPOs.length,
-            totalAmount: parseFloat(
-                allPOs.reduce((s, p) => s + (parseFloat(p.netAmount) || 0), 0).toFixed(2)
-            ),
-            draftCount: countByStatus("Draft"),
-            submittedCount: countByStatus("Submitted"),
-            underReviewCount: countByStatus("UnderReview"),
-            approvedCount: countByStatus("Approved"),
-            rejectedCount: countByStatus("Rejected"),
-            cancelledCount: countByStatus("Cancelled"),
-            approvedAmount: parseFloat(amountByStatus("Approved").toFixed(2)),
-            pendingAmount: parseFloat(
-                (amountByStatus("Submitted") + amountByStatus("UnderReview")).toFixed(2)
-            ),
+            totalAmount: parseFloat(totalAmount.toFixed(2)),
+            draftCount,
+            submittedCount,
+            underReviewCount,
+            approvedCount,
+            rejectedCount,
+            cancelledCount,
+            approvedAmount: parseFloat(approvedAmount.toFixed(2)),
+            pendingAmount: parseFloat(pendingAmount.toFixed(2)),
             topVendors,
-            monthlyTrend,
+            monthlyTrend
         };
     });
 });
